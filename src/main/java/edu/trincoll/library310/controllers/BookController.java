@@ -12,6 +12,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
+@RequestMapping("/books")
 public class BookController {
     private final BookRepository repository;
 
@@ -20,23 +21,28 @@ public class BookController {
         this.repository = repository;
     }
 
-    @GetMapping("/books")
+    @GetMapping
     public List<Book> getAllBooks() {
         return repository.findAll();
     }
 
-    @GetMapping("/books/{id}")
+    @GetMapping("{id}")
     public ResponseEntity<Book> getBookById(@PathVariable Long id) {
         return ResponseEntity.of(repository.findById(id));
     }
 
-    @DeleteMapping("/books/{id}")
-    public ResponseEntity<Book> deleteBookById(@PathVariable Long id) {
-        repository.deleteById(id);
-        return ResponseEntity.noContent().build();
+    @GetMapping("count")
+    public long getBookCount() {
+        return repository.count();
     }
 
-    @PostMapping("/books")
+//    @DeleteMapping("{id}")
+//    public ResponseEntity<Book> deleteBookById(@PathVariable Long id) {
+//        repository.deleteById(id);
+//        return ResponseEntity.noContent().build();
+//    }
+
+    @PostMapping
     public ResponseEntity<Book> createBook(@RequestBody Book book) {
         repository.save(book);
         URI location = ServletUriComponentsBuilder.fromCurrentRequestUri()
@@ -44,6 +50,35 @@ public class BookController {
                 .buildAndExpand(book.getId())
                 .toUri();
         return ResponseEntity.created(location).body(book);
+    }
+
+    @PutMapping("{id}")
+    public ResponseEntity<Book> update(@PathVariable Long id, @RequestBody Book book) {
+        return repository.findById(id)
+                .map(p -> {
+                    p.setTitle(book.getTitle());
+                    p.setAuthor(book.getAuthor());
+                    p.setISBN(book.getISBN());
+                    p.setDate(book.getDate());
+                    return ResponseEntity.ok(repository.save(p));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("{id}")
+    public ResponseEntity<?> deleteBook(@PathVariable Long id) {
+        return repository.findById(id)
+                .map(p -> {
+                    repository.delete(p);
+                    return ResponseEntity.noContent().build();
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping
+    public ResponseEntity<?> deleteAllBooks() {
+        repository.deleteAll();
+        return ResponseEntity.noContent().build();
     }
 }
 
